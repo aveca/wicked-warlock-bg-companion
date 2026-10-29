@@ -1,4 +1,4 @@
-## Interface: 20505
+## Interface: 20506
 ## Title: Wicked Warlock BG Companion
 ## Notes: Hideable Warlock battleground dashboard with score monitoring, jokes and secure spell buttons.
 ## Author: OpenAI
