@@ -1,0 +1,8 @@
+## Interface: 20505
+## Title: Wicked Warlock BG Companion
+## Notes: Hideable Warlock battleground dashboard with score monitoring, jokes and secure spell buttons.
+## Author: OpenAI
+## Version: 2.0.0
+## SavedVariables: WickedWarlockDB
+
+WickedWarlock.lua
