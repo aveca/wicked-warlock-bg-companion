@@ -1,4 +1,4 @@
--- Wicked Warlock BG Companion v2.0.0
+-- Wicked Warlock BG Companion v2.0.1
 -- TBC Anniversary-oriented. Lua 5.1 compatible.
 -- Scoreboard is polled locally for UI suggestions; chat lines require a click.
 -- Spell buttons are secure user-click actions. The addon does not bypass protected-action rules.
@@ -11,6 +11,8 @@ if DB.locked == nil then DB.locked = false end
 if DB.hidden == nil then DB.hidden = false end
 if DB.autoScan == nil then DB.autoScan = true end
 if DB.chatChannel == nil then DB.chatChannel = "BATTLEGROUND" end
+if DB.errorLog == nil then DB.errorLog = {} end
+if DB.errorCount == nil then DB.errorCount = 0 end
 
 local function randomLine(list)
   if not list or #list == 0 then return nil end
@@ -216,6 +218,48 @@ local function chooseTacticalLine(rows)
   return randomLine(LINES.start)
 end
 
+-- Capture d'erreurs addon-scopée (ne remplace PAS le gestionnaire d'erreurs global).
+-- Les erreurs sont enregistrées dans WickedWarlockDB.errorLog (SavedVariables) et
+-- conservées après un rechargement / une sortie normale du jeu.
+local MAX_ERROR_LOG = 50
+
+local function addError(err, context)
+  DB.errorCount = (DB.errorCount or 0) + 1
+  local entry = {
+    time = (date and date("%H:%M:%S")) or "?",
+    version = "2.0.1",
+    source = "WickedWarlock",
+    context = tostring(context or "unknown"),
+    message = tostring(err or "unknown error"),
+    count = 1
+  }
+  for _, e in ipairs(DB.errorLog) do
+    if e.context == entry.context and e.message == entry.message then
+      e.count = (e.count or 1) + 1
+      e.time = entry.time
+      return
+    end
+  end
+  table.insert(DB.errorLog, 1, entry)
+  while #DB.errorLog > MAX_ERROR_LOG do table.remove(DB.errorLog) end
+end
+
+local function safeCall(fn, context)
+  local ctx = tostring(context or "unknown")
+  local msg = nil
+  return function(...)
+    local ok, err = pcall(fn, ...)
+    if not ok then
+      msg = tostring(err)
+      addError(msg, ctx)
+      local e = DB.errorLog[1]
+      if e and e.count == 1 and e.message == msg and e.context == ctx then
+        print("|cffff6038Wicked Warlock erreur|r: " .. msg .. " (" .. ctx .. ")")
+      end
+    end
+  end
+end
+
 -- Main panel
 local frame = CreateFrame("Frame", "WickedWarlockFrame", UIParent)
 frame:SetSize(340, 395)
@@ -232,13 +276,15 @@ frame:SetScript("OnDragStop", function(self)
   local point, _, relativePoint, x, y = self:GetPoint(1)
   DB.point, DB.relativePoint, DB.x, DB.y = point, relativePoint, x, y
 end)
-frame:SetBackdrop({
-  bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-  edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-  tile = true, tileSize = 16, edgeSize = 12,
-  insets = {left=3, right=3, top=3, bottom=3}
-})
-frame:SetBackdropColor(0.055, 0.025, 0.085, 0.96)
+if frame.SetBackdrop then
+  frame:SetBackdrop({
+    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    tile = true, tileSize = 16, edgeSize = 12,
+    insets = {left=3, right=3, top=3, bottom=3}
+  })
+  frame:SetBackdropColor(0.055, 0.025, 0.085, 0.96)
+end
 if DB.point then
   frame:ClearAllPoints()
   frame:SetPoint(DB.point, UIParent, DB.relativePoint or DB.point, DB.x or 0, DB.y or 0)
@@ -315,7 +361,7 @@ end
 -- Header controls
 local hideButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
 hideButton:SetPoint("TOPRIGHT", -1, -1)
-hideButton:SetScript("OnClick", function() frame:Hide(); DB.hidden = true end)
+hideButton:SetScript("OnClick", safeCall(function() frame:Hide(); DB.hidden = true end, "hideButton"))
 
 makeButton("😈 INTRO", 10, -103, 148, 25, function()
   doEmote("grin")
@@ -379,26 +425,26 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_SCORE")
 eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
-eventFrame:SetScript("OnEvent", function(_, event)
+eventFrame:SetScript("OnEvent", safeCall(function(_, event)
   if event == "PLAYER_ENTERING_WORLD" or event == "UPDATE_BATTLEFIELD_STATUS" then
     mapText:SetText("BG: " .. getMapName())
   end
   if DB.autoScan and event == "UPDATE_BATTLEFIELD_SCORE" then scanScores(true) end
-end)
+end, "OnEvent"))
 
 local elapsed = 0
-frame:SetScript("OnUpdate", function(_, delta)
+frame:SetScript("OnUpdate", safeCall(function(_, delta)
   elapsed = elapsed + delta
   if elapsed >= 15 then
     elapsed = 0
     local inside, instanceType = IsInInstance()
     if DB.autoScan and inside and instanceType == "pvp" then scanScores(true) end
   end
-end)
+end, "OnUpdate"))
 
 SLASH_WICKEDWARLOCK1 = "/ww"
 SLASH_WICKEDWARLOCK2 = "/wicked"
-SlashCmdList["WICKEDWARLOCK"] = function(msg)
+SlashCmdList["WICKEDWARLOCK"] = safeCall(function(msg)
   msg = (msg or ""):lower():match("^%s*(.-)%s*$")
   if msg == "show" then frame:Show(); DB.hidden = false
   elseif msg == "hide" then frame:Hide(); DB.hidden = true
@@ -406,15 +452,22 @@ SlashCmdList["WICKEDWARLOCK"] = function(msg)
   elseif msg == "start" then doEmote("roar"); announce(randomLine(LINES.start))
   elseif msg == "scan" or msg == "stats" then scanScores(false)
   elseif msg == "tip" then announce(chooseTacticalLine(scanScores(true) or lastRows))
+  elseif msg == "errors" then
+    local n = #DB.errorLog
+    print("|cffff6038Wicked Warlock erreurs|r: " .. n .. " enregistrée(s).")
+    for i = 1, math.min(n, 10) do
+      local e = DB.errorLog[i]
+      print("  [" .. e.time .. "] " .. e.context .. ": " .. e.message .. " (x" .. (e.count or 1) .. ")")
+    end
   elseif msg == "lock" then DB.locked = true; print("Wicked Warlock: panel locked.")
   elseif msg == "unlock" then DB.locked = false; print("Wicked Warlock: panel unlocked.")
   elseif msg == "autoon" then DB.autoScan = true; print("Wicked Warlock: automatic local scoreboard refresh ON.")
   elseif msg == "autooff" then DB.autoScan = false; print("Wicked Warlock: automatic local scoreboard refresh OFF.")
   else
-    print("|cffff6038Wicked Warlock commands|r: /ww show, hide, intro, start, scan, stats, tip, lock, unlock, autoon, autooff")
+    print("|cffff6038Wicked Warlock commands|r: /ww show, hide, intro, start, scan, stats, tip, errors, lock, unlock, autoon, autooff")
   end
-end
+end, "SlashCmd /ww")
 
 if DB.hidden then frame:Hide() else frame:Show() end
 math.randomseed((time and time() or 1) + math.floor((GetTime and GetTime() or 0) * 1000))
-print("|cffff6038Wicked Warlock v2.0 loaded.|r Type /ww to control the panel.")
+print("|cffff6038Wicked Warlock v2.0.1 loaded.|r Type /ww to control the panel. Type /ww errors to view captured Lua errors.")
