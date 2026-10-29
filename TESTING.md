@@ -47,9 +47,22 @@ WoW écrit les erreurs de chargement des addons dans :
 C:\Program Files (x86)\World of Warcraft\_anniversary_\Logs\FrameXML.log
 ```
 
-Une surveillance de ce fichier (et des rapports d'erreurs du collecteur
-dedié, le cas échéant) permet de détecter les erreurs de Wicked Warlock
-pendant une session de jeu. Voir `DIAGNOSTIC.md` pour le détail.
+Une surveillance de ce fichier (et des rapports du captureur d'erreurs
+addon-scopé, voir ci-dessous) permet de détecter les erreurs de Wicked
+Warlock pendant une session de jeu.
+
+Le captureur addon-scopé enregistre les erreurs dans
+`WickedWarlockDB.errorLog` (SavedVariables), consultable en jeu avec
+`/ww errors` (dernières 10 erreurs, avec heure, contexte, compteur de
+répétition) et dans le fichier SavedVariables après un rechargement /
+une sortie normale :
+
+```
+C:\Program Files (x86)\World of Warcraft\_anniversary_\WTF\Account\<compte>\SavedVariables\WickedWarlock.lua
+```
+
+Ce captureur ne remplace PAS le gestionnaire d'erreurs global du client
+et n'envoie rien dans le chat automatiquement (pas de spam).
 
 ## 5. Résultat des tests exécutés
 

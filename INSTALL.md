@@ -46,7 +46,7 @@ C:\Program Files (x86)\World of Warcraft\_anniversary_\Interface\AddOns\
 
 ## Version et compatibilité
 
-- Version de l'addon : **2.0.0**
+- Version de l'addon : **2.0.1**
 - `.toc` Interface : **20506** (build du client TBC Anniversary vérifié)
 - Le panneau est déplaçable (glisser-déposer) et sa position est mémorisée.
 - Les boutons de sorts sont des **boutons sécurisés** (clic utilisateur requis) :

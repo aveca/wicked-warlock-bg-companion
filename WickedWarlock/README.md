@@ -1,4 +1,4 @@
-# Wicked Warlock BG Companion (starter v1.0.0)
+# Wicked Warlock BG Companion v2.0.1
 
 ## Install
 1. Close WoW.
@@ -17,6 +17,7 @@
 - `/ww unknown` — generic line.
 - `/ww scan` — read available enemy class rows from the battleground scoreboard, print a class summary and estimated role-capable counts, then say a related joke.
 - `/ww stats` — print team totals and top damage/healing players from the currently available scoreboard, then say a performance-based line.
+- `/ww errors` — display the last captured Lua errors (addon-scoped capture, stored in SavedVariables).
 
 - `/ww show` / `/ww hide` — show/hide panel.
 
