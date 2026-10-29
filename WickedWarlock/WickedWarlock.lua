@@ -276,13 +276,15 @@ frame:SetScript("OnDragStop", function(self)
   local point, _, relativePoint, x, y = self:GetPoint(1)
   DB.point, DB.relativePoint, DB.x, DB.y = point, relativePoint, x, y
 end)
-frame:SetBackdrop({
-  bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-  edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-  tile = true, tileSize = 16, edgeSize = 12,
-  insets = {left=3, right=3, top=3, bottom=3}
-})
-frame:SetBackdropColor(0.055, 0.025, 0.085, 0.96)
+if frame.SetBackdrop then
+  frame:SetBackdrop({
+    bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    tile = true, tileSize = 16, edgeSize = 12,
+    insets = {left=3, right=3, top=3, bottom=3}
+  })
+  frame:SetBackdropColor(0.055, 0.025, 0.085, 0.96)
+end
 if DB.point then
   frame:ClearAllPoints()
   frame:SetPoint(DB.point, UIParent, DB.relativePoint or DB.point, DB.x or 0, DB.y or 0)
