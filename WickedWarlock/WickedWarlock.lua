@@ -314,7 +314,7 @@ local function makeButton(label, x, y, width, height, fn, secure)
   b:SetSize(width or 148, height or 25)
   b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
   b:SetText(label)
-  if fn then b:SetScript("OnClick", safeCall(fn, "button:" .. tostring(label))) end
+  if fn then b:SetScript("OnClick", fn) end
   return b
 end
 
